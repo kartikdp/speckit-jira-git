@@ -1,0 +1,51 @@
+{
+  "name": "@kartikdp/speckit-jira-git",
+  "version": "0.1.0",
+  "description": "Portable Spec Kit, Jira, and GitHub workflow skill for coding agents.",
+  "type": "module",
+  "bin": {
+    "speckit-jira-git": "bin/speckit-jira-git.js"
+  },
+  "files": [
+    "SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    ".env.example",
+    "agents",
+    "bin",
+    "references",
+    "scripts",
+    "requirements.txt"
+  ],
+  "scripts": {
+    "check": "node bin/speckit-jira-git.js --help && python3 -m compileall -q scripts"
+  },
+  "keywords": [
+    "agent-skills",
+    "jira",
+    "github",
+    "speckit",
+    "codex",
+    "claude",
+    "cursor",
+    "windsurf"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kartikdp/speckit-jira-git.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kartikdp/speckit-jira-git/issues"
+  },
+  "homepage": "https://github.com/kartikdp/speckit-jira-git#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
