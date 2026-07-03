@@ -6,7 +6,7 @@ import json
 import os
 
 from activity_common import add_comment_once, extract_issue_keys
-from github_client import GitHubClient, PullRequestRef, current_repo, parse_pr_url
+from github_client import GitHubClient, PullRequestRef, current_repo, parse_issue_comment_url, parse_pr_url
 from jira_client import JiraClient
 
 
@@ -157,6 +157,57 @@ def _gate_line(label: str, status: str) -> str:
     return f"[{symbol}] {label}: {status}"
 
 
+def _latest_commit_message(commits: list[dict]) -> str:
+    if not commits:
+        return ""
+    return ((commits[-1].get("commit") or {}).get("message") or "").strip()
+
+
+def _github_message_from_comment(comment: dict) -> tuple[str, str]:
+    author = (comment.get("user") or {}).get("login") or "unknown"
+    updated = comment.get("updated_at") or comment.get("created_at") or "unknown time"
+    url = comment.get("html_url") or ""
+    source = f"PR conversation comment by {author} at {updated}"
+    if url:
+        source += f" ({url})"
+    return source, (comment.get("body") or "").strip()
+
+
+def _github_message(
+    *,
+    gh: GitHubClient,
+    ref: PullRequestRef,
+    pr: dict,
+    commits: list[dict],
+    summary: str,
+    comment_url: str,
+    include_latest_comment: bool,
+) -> tuple[str, str]:
+    """Select the GitHub-authored message to attach to the Jira comment."""
+
+    if summary.strip():
+        return "manual summary override", summary.strip()
+    if comment_url:
+        comment_ref, comment_id = parse_issue_comment_url(comment_url)
+        if comment_ref != ref:
+            raise SystemExit("ERROR: --comment-url must belong to the same PR as --pr-url")
+        return _github_message_from_comment(gh.issue_comment(ref, comment_id))
+    body = (pr.get("body") or "").strip()
+    if body:
+        author = (pr.get("user") or {}).get("login") or "unknown"
+        updated = pr.get("updated_at") or pr.get("created_at") or "unknown time"
+        return f"PR description by {author} at {updated}", body
+    if include_latest_comment:
+        comments = [comment for comment in gh.issue_comments(ref) if (comment.get("body") or "").strip()]
+        if comments:
+            return _github_message_from_comment(comments[-1])
+    commit_message = _latest_commit_message(commits)
+    if commit_message:
+        sha = (((commits[-1].get("sha") or "")[:8]) or "unknown")
+        return f"latest commit message {sha}", commit_message
+    return "", ""
+
+
 def _status_card(ref: PullRequestRef, pr: dict, event: str, commits: list[dict], reviews: list[dict], check_runs: list[dict]) -> str:
     """Render a compact fixed-width PR status card for Jira comments."""
 
@@ -217,7 +268,13 @@ def main() -> None:
         help="Activity type to report",
     )
     parser.add_argument("--pattern", default=r"\b[A-Z][A-Z0-9]+-\d+\b", help="Jira key regex")
-    parser.add_argument("--summary", default="", help="Optional one-line human summary")
+    parser.add_argument("--summary", default="", help="Manual message override for the Jira comment")
+    parser.add_argument("--comment-url", default="", help="GitHub PR conversation comment URL to attach")
+    parser.add_argument(
+        "--no-latest-comment",
+        action="store_true",
+        help="Do not fall back to the latest PR conversation comment when PR body is empty",
+    )
     parser.add_argument("--update-existing", action="store_true", help="Update existing marked Jira comment instead of skipping")
     parser.add_argument("--dry-run", action="store_true", help="Print payload without posting")
     parser.add_argument("--json", action="store_true", help="Print JSON result")
@@ -232,17 +289,36 @@ def main() -> None:
     issues = _issue_keys(args, pr, commits)
 
     status_card = _status_card(ref, pr, args.event, commits, reviews, check_runs)
+    message_source, message_body = _github_message(
+        gh=gh,
+        ref=ref,
+        pr=pr,
+        commits=commits,
+        summary=args.summary,
+        comment_url=args.comment_url,
+        include_latest_comment=not args.no_latest_comment,
+    )
     lines = [
         f"PR: {pr.get('title')}",
         f"URL: {pr.get('html_url')}",
     ]
-    if args.summary:
-        lines.append(f"Summary: {args.summary}")
+    code_blocks = [status_card]
+    if message_body:
+        lines.append(f"GitHub message source: {message_source}")
+        code_blocks.append(message_body)
     marker = f"speckit-jira-git:github-pr:{args.event}:{ref.full_name}#{ref.number}"
     title = _event_title(args.event)
 
     if args.dry_run:
-        output = {"issues": issues, "title": title, "status_card": status_card, "lines": lines, "marker": marker}
+        output = {
+            "issues": issues,
+            "title": title,
+            "status_card": status_card,
+            "github_message_source": message_source,
+            "github_message": message_body,
+            "lines": lines,
+            "marker": marker,
+        }
         print(json.dumps(output, indent=2) if args.json else output)
         return
 
@@ -254,7 +330,7 @@ def main() -> None:
             marker,
             title,
             lines,
-            code_blocks=[status_card],
+            code_blocks=code_blocks,
             update_existing=args.update_existing,
             visible_marker=False,
             fallback_texts=[title, pr.get("html_url") or "", pr.get("title") or ""],

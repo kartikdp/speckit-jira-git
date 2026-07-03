@@ -28,7 +28,22 @@ Dry-run:
 speckit-jira-git pr-to-jira --pr-url https://github.com/org/repo/pull/123 --event opened --dry-run --json
 ```
 
-PR comments include a fixed-width Jira code block with a compact status card:
+PR comments include:
+
+- a fixed-width Jira code block with a compact status card
+- the GitHub-authored message as a second code block
+- the PR title, PR URL, and message source
+
+The GitHub message is selected in this order:
+
+1. `--summary` when passed manually.
+2. `--comment-url` when passed with a PR conversation comment URL.
+3. PR description/body.
+4. latest PR conversation comment.
+5. latest commit message.
+
+Use `--no-latest-comment` if an empty PR description should fall back directly
+to the latest commit message.
 
 ```text
 +---------------- GitHub PR Status ----------------+
@@ -51,6 +66,15 @@ Post live:
 speckit-jira-git pr-to-jira --pr-url https://github.com/org/repo/pull/123 --event ready
 ```
 
+Attach a specific PR conversation comment:
+
+```bash
+speckit-jira-git pr-to-jira \
+  --pr-url https://github.com/org/repo/pull/123 \
+  --event updated \
+  --comment-url https://github.com/org/repo/pull/123#issuecomment-1234567890
+```
+
 Supported events:
 
 ```text
@@ -69,9 +93,11 @@ speckit-jira-git review-to-jira \
   --status changes_requested \
   --reviewer "Reviewer Name" \
   --round 2 \
-  --area backend \
-  --summary "Requested API contract and test updates."
+  --area backend
 ```
+
+Review comments attach the matching GitHub review body by default. Passing
+`--summary` overrides the GitHub review body.
 
 Supported statuses:
 

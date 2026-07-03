@@ -33,6 +33,37 @@ def _issue_keys(args: argparse.Namespace, pr: dict, commits: list[dict]) -> list
     return keys
 
 
+def _latest_review_message(reviews: list[dict], status: str, reviewer: str) -> tuple[str, str]:
+    wanted_state = {
+        "approved": "APPROVED",
+        "changes_requested": "CHANGES_REQUESTED",
+        "commented": "COMMENTED",
+    }.get(status)
+    reviewer_lower = reviewer.lower().strip()
+    candidates = []
+    for review in reviews:
+        body = (review.get("body") or "").strip()
+        if not body:
+            continue
+        state = (review.get("state") or "").upper()
+        user = (review.get("user") or {}).get("login") or "unknown"
+        if wanted_state and state != wanted_state:
+            continue
+        if reviewer_lower and user.lower() != reviewer_lower:
+            continue
+        candidates.append(review)
+    if not candidates:
+        return "", ""
+    review = candidates[-1]
+    user = (review.get("user") or {}).get("login") or "unknown"
+    submitted = review.get("submitted_at") or "unknown time"
+    url = review.get("html_url") or ""
+    source = f"GitHub review by {user} at {submitted}"
+    if url:
+        source += f" ({url})"
+    return source, (review.get("body") or "").strip()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Add a Jira comment for GitHub PR review activity")
     parser.add_argument("--pr-url", required=True, help="GitHub PR URL")
@@ -46,7 +77,7 @@ def main() -> None:
     parser.add_argument("--reviewer", default="", help="Reviewer name or GitHub login")
     parser.add_argument("--round", default="", help="Review round label, e.g. 2")
     parser.add_argument("--area", choices=["frontend", "backend", "fullstack", "general"], default="general")
-    parser.add_argument("--summary", default="", help="Short review summary")
+    parser.add_argument("--summary", default="", help="Manual message override for the Jira comment")
     parser.add_argument("--pattern", default=r"\b[A-Z][A-Z0-9]+-\d+\b", help="Jira key regex")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true")
@@ -56,6 +87,7 @@ def main() -> None:
     ref = parse_pr_url(args.pr_url)
     pr = gh.pull_request(ref)
     commits = gh.pull_request_commits(ref)
+    reviews = gh.pull_request_reviews(ref)
     issues = _issue_keys(args, pr, commits)
 
     title = STATUS_LABELS[args.status]
@@ -79,16 +111,30 @@ def main() -> None:
         f"Outcome: {args.status.replace('_', ' ')}",
     ]
     if args.summary:
-        lines.append(f"Summary: {args.summary}")
+        message_source = "manual summary override"
+        message_body = args.summary.strip()
+    else:
+        message_source, message_body = _latest_review_message(reviews, args.status, args.reviewer)
+    code_blocks = []
+    if message_body:
+        lines.append(f"GitHub message source: {message_source}")
+        code_blocks.append(message_body)
 
     if args.dry_run:
-        output = {"issues": issues, "title": title, "lines": lines, "marker": marker}
+        output = {
+            "issues": issues,
+            "title": title,
+            "github_message_source": message_source,
+            "github_message": message_body,
+            "lines": lines,
+            "marker": marker,
+        }
         print(json.dumps(output, indent=2) if args.json else output)
         return
 
     client = JiraClient()
     results = [
-        add_comment_once(client, issue, marker, title, lines, dry_run=False).__dict__
+        add_comment_once(client, issue, marker, title, lines, code_blocks=code_blocks, dry_run=False).__dict__
         for issue in issues
     ]
     print(json.dumps({"results": results}, indent=2) if args.json else "\n".join(str(r) for r in results))

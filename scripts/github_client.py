@@ -23,6 +23,9 @@ from urllib.request import Request, urlopen
 
 
 PR_URL_RE = re.compile(r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<number>\d+)")
+ISSUE_COMMENT_URL_RE = re.compile(
+    r"github\.com[:/](?P<owner>[^/]+)/(?P<repo>[^/]+)/pull/(?P<number>\d+)#issuecomment-(?P<comment_id>\d+)"
+)
 
 
 @dataclass(frozen=True)
@@ -68,6 +71,22 @@ def parse_pr_url(url: str) -> PullRequestRef:
         owner=match.group("owner"),
         repo=match.group("repo"),
         number=int(match.group("number")),
+    )
+
+
+def parse_issue_comment_url(url: str) -> tuple[PullRequestRef, int]:
+    """Parse a GitHub PR issue-comment URL."""
+
+    match = ISSUE_COMMENT_URL_RE.search(url)
+    if not match:
+        raise ValueError(f"Not a GitHub pull request issue-comment URL: {url}")
+    return (
+        PullRequestRef(
+            owner=match.group("owner"),
+            repo=match.group("repo"),
+            number=int(match.group("number")),
+        ),
+        int(match.group("comment_id")),
     )
 
 
@@ -152,6 +171,17 @@ class GitHubClient:
         return self.get(
             f"/repos/{ref.owner}/{ref.repo}/pulls/{ref.number}/comments",
             params={"per_page": 100},
+        )
+
+    def issue_comments(self, ref: PullRequestRef) -> list[dict[str, Any]]:
+        return self.get(
+            f"/repos/{ref.owner}/{ref.repo}/issues/{ref.number}/comments",
+            params={"per_page": 100},
+        )
+
+    def issue_comment(self, ref: PullRequestRef, comment_id: int) -> dict[str, Any]:
+        return self.get(
+            f"/repos/{ref.owner}/{ref.repo}/issues/comments/{comment_id}",
         )
 
     def check_runs(self, ref: PullRequestRef, sha: str) -> list[dict[str, Any]]:
