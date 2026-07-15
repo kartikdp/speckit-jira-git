@@ -1,0 +1,4 @@
+interface:
+  display_name: "Spec Kit Jira Git"
+  short_description: "Run deterministic Spec Kit, Jira, and GitHub workflows"
+  default_prompt: "Use $speckit-jira-git to create canonically ordered Jira work, attach complete review packets, and synchronize structured GitHub activity without inferring status or identity."

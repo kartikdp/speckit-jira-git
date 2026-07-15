@@ -1,4 +1,0 @@
-interface:
-  display_name: "Spec Kit Jira Git"
-  short_description: "Sync Spec Kit, Jira, and GitHub workflows"
-  default_prompt: "Use speckit-jira-git to create Jira tasks from Spec Kit, add Jira comments/worklogs, generate time reports, and sync GitHub PR or review activity to Jira."

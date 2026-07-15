@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/speckit-jira-git/review-activity-v1.schema.json",
+  "title": "Review Activity V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "repository", "number", "title", "url",
+    "area", "reviewer", "round", "head_sha", "findings", "validations",
+    "headline", "note_source", "note", "review_url"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "status": {"enum": ["approved", "changes_requested", "commented", "review_requested"]},
+    "repository": {"type": "string", "minLength": 1},
+    "number": {"type": "integer", "minimum": 1},
+    "title": {"type": "string", "minLength": 1},
+    "url": {"type": "string"},
+    "area": {"enum": ["frontend", "backend", "fullstack", "general"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "round": {"type": ["integer", "null"], "minimum": 1},
+    "head_sha": {"type": "string", "minLength": 1},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "validations": {"type": "array", "items": {"$ref": "#/$defs/validation"}},
+    "headline": {"type": "string"},
+    "note_source": {"type": "string"},
+    "note": {"type": "string"},
+    "review_url": {"type": "string"}
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "summary", "path", "line", "impact", "required_action"],
+      "properties": {
+        "severity": {"enum": ["P0", "P1", "P2", "P3"]},
+        "summary": {"type": "string", "minLength": 1},
+        "path": {"type": "string"},
+        "line": {"type": ["integer", "null"], "minimum": 1},
+        "impact": {"type": "string"},
+        "required_action": {"type": "string"}
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "name", "detail"],
+      "properties": {
+        "status": {"enum": ["passed", "failed", "blocked", "skipped"]},
+        "name": {"type": "string", "minLength": 1},
+        "detail": {"type": "string"}
+      }
+    }
+  }
+}

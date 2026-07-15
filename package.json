@@ -4,34 +4,27 @@
   "description": "Portable Spec Kit, Jira, and GitHub workflow skill for coding agents.",
   "type": "module",
   "bin": {
-    "speckit-jira-git": "bin/speckit-jira-git.js"
+    "speckit-jira-git": "skills/speckit-jira-git/bin/speckit-jira-git.js"
   },
   "files": [
-    "SKILL.md",
-    "AGENTS.md",
-    "CLAUDE.md",
     "README.md",
     "LICENSE",
     "NOTICE",
-    ".env.example",
-    "agents",
-    "bin",
-    "references",
-    "scripts",
-    "requirements.txt"
+    "skills/speckit-jira-git"
   ],
   "scripts": {
-    "check": "node bin/speckit-jira-git.js --help && python3 -m compileall -q scripts"
+    "check": "node skills/speckit-jira-git/bin/speckit-jira-git.js --help && python3 tests/check_python_syntax.py",
+    "test": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py'",
+    "validate-skill": "python3 tests/validate_skill.py",
+    "prepack": "npm run check && npm test && npm run validate-skill"
   },
   "keywords": [
     "agent-skills",
     "jira",
     "github",
     "speckit",
-    "codex",
-    "claude",
-    "cursor",
-    "windsurf"
+    "developer-tools",
+    "workflow-automation"
   ],
   "license": "Apache-2.0",
   "repository": {

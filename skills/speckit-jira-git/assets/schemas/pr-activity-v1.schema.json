@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/speckit-jira-git/pr-activity-v1.schema.json",
+  "title": "Pull Request Activity V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "event", "repository", "number", "title", "url",
+    "author", "source_branch", "target_branch", "head_sha", "state", "draft",
+    "mergeability", "checks", "checks_detail", "review_state", "review_detail",
+    "changed_files", "additions", "deletions", "commits", "changes",
+    "validations", "remaining", "headline", "note_source", "note",
+    "github_comment_url"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "event": {"enum": ["opened", "ready", "updated", "closed", "merged"]},
+    "repository": {"type": "string", "minLength": 1},
+    "number": {"type": "integer", "minimum": 1},
+    "title": {"type": "string", "minLength": 1},
+    "url": {"type": "string"},
+    "author": {"type": "string"},
+    "source_branch": {"type": "string"},
+    "target_branch": {"type": "string"},
+    "head_sha": {"type": "string", "minLength": 1},
+    "state": {"type": "string"},
+    "draft": {"type": "boolean"},
+    "mergeability": {"type": "string"},
+    "checks": {"type": "string"},
+    "checks_detail": {"type": "string"},
+    "review_state": {"type": "string"},
+    "review_detail": {"type": "string"},
+    "changed_files": {"oneOf": [{"type": "integer"}, {"type": "string"}]},
+    "additions": {"oneOf": [{"type": "integer"}, {"type": "string"}]},
+    "deletions": {"oneOf": [{"type": "integer"}, {"type": "string"}]},
+    "commits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sha", "subject"],
+        "properties": {"sha": {"type": "string"}, "subject": {"type": "string"}}
+      }
+    },
+    "changes": {"type": "array", "items": {"type": "string"}},
+    "validations": {"type": "array", "items": {"$ref": "#/$defs/validation"}},
+    "remaining": {"type": "array", "items": {"type": "string"}},
+    "headline": {"type": "string"},
+    "note_source": {"type": "string"},
+    "note": {"type": "string"},
+    "github_comment_url": {"type": "string"}
+  },
+  "$defs": {
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "name", "detail"],
+      "properties": {
+        "status": {"enum": ["passed", "failed", "blocked", "skipped"]},
+        "name": {"type": "string", "minLength": 1},
+        "detail": {"type": "string"}
+      }
+    }
+  }
+}

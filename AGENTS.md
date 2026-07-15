@@ -1,28 +1,30 @@
-# speckit-jira-git Agent Instructions
+# Repository contributor instructions
 
-Use this package for Jira, Spec Kit, GitHub PR/review tracking, and time reporting tasks.
+This repository publishes an agent-neutral Agent Skill and an optional npm CLI.
+Keep portable runtime content under `skills/speckit-jira-git/`; root files are
+for repository development and distribution only.
 
-Always prefer scripts in `scripts/` over hand-written Jira or GitHub API calls. The scripts load credentials from environment variables, project `.env`, or `~/.jira/credentials.env` and avoid printing tokens.
+## Development rules
 
-Run setup validation before live work:
+- Do not add user names, Jira account IDs, tenant URLs, tokens, or organization-
+  specific assignment policy to portable source, examples, or defaults.
+- Keep Jira identity attribution separate from Jira task assignment.
+- Keep generated Jira issues in their default status unless a caller explicitly
+  requests a transition.
+- Preserve deterministic workflow ordering, structured comment schemas,
+  idempotency markers, and secret redaction when changing integrations.
+- Put detailed workflows in the skill's `references/` directory and reusable
+  output contracts/templates in `assets/`; keep `SKILL.md` concise.
+
+## Validation
+
+Run before proposing a release:
 
 ```bash
-speckit-jira-git setup-check
+npm run check
+npm test
+npm run validate-skill
 ```
 
-Use these workflows:
-
-- Setup: `setup-check`, `install-instructions`.
-- Add stories/tasks to Jira: `find-parent`, `standard-tasks`, `generate-subtasks`, `push-subtasks`.
-- Sync GitHub to Jira: `find-jira-key`, `pr-to-jira`, `review-to-jira`.
-- Check and update logged hours: `log-worklog`, `update-worklog`, `time-report`.
-- Jira maintenance: `add-comment`, `transition`, `update-estimate`, `discover-project`.
-
-For GitHub-to-Jira activity, detect the Jira key from PR title, branch, body, or commit messages. If no key is found, ask for the Jira issue key instead of guessing.
-
-Use dry-run flags before posting to live Jira when the request is ambiguous.
-
-If this repository is checked out locally, running `python3 scripts/<name>.py`
-is also supported. Prefer an installed or vendored `speckit-jira-git` command
-for routine work; use `npx github:kartikdp/speckit-jira-git ...` only to
-bootstrap or refresh the tool.
+Also perform a clean temporary `npx skills add` installation and an `npm pack`
+smoke test when changing layout, package metadata, or executable paths.
