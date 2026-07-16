@@ -1,7 +1,43 @@
 <!-- speckit-jira-git:start -->
 ## speckit-jira-git
 
-Use the installed `speckit-jira-git` skill for Jira, Spec Kit, and linked GitHub PR activity. Resolve the CLI from `PATH` or from the installed skill root; do not hardcode an agent-specific installation directory.
+Use the installed `speckit-jira-git` skill for all Jira, Spec Kit-to-Jira, and
+linked GitHub PR or review activity. This is mandatory: load the skill's
+`SKILL.md` before running commands or writing to Jira or GitHub.
+
+Resolve the skill through the agent's skill catalog first. If it is not exposed
+there, check the project-vendored copies at
+`.claude/skills/speckit-jira-git/SKILL.md` and
+`.agents/skills/speckit-jira-git/SKILL.md`. Resolve the CLI from `PATH` or from
+`bin/speckit-jira-git.js` relative to the loaded skill root; do not hardcode an
+external, agent-specific installation directory.
+
+Resolve project-vendored paths from the repository containing the canonical
+`CLAUDE.md` and `AGENTS.md`, not from the process working directory. When an
+agent starts in a parent workspace, locate the nested repository containing
+those canonical files first. Workspace-root instruction files MUST point to
+the canonical files and skill roots; do not copy the full instructions or
+skill tree into the parent workspace.
+
+If the skill file or CLI cannot be found or read, stop before any Jira or
+GitHub write and clearly tell the user:
+
+> The required `speckit-jira-git` skill was not found or could not be loaded.
+> Please check the project structure and ensure the skill is installed in a
+> supported project or agent skill directory.
+
+Include the paths or command locations that were checked. Do not silently fall
+back to direct Jira REST calls, generic Jira tools, `gh` mutations, or manual
+payload construction.
+
+Before creating or updating a pull request, read the applicable template under
+`.github/`: the default `PULL_REQUEST_TEMPLATE.md`, or the dedicated hotfix or
+release template. Preserve its section structure and fill every applicable
+section with observed information; do not replace it with an ad hoc body.
+Validate the PR title against the canonical shape in `CLAUDE.md` and
+`AGENTS.md`; `feat` and `fix` titles require both the Jira key and WBS code. If
+either required identifier is unavailable, ask the user instead of opening or
+renaming the PR with a partial title.
 
 Detect the Jira key from the branch, commits, PR title, or PR body. If no key is available, request it before writing to Jira. Run `--dry-run` first whenever the target issue, PR, review area, or activity content is uncertain.
 

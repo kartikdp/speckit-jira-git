@@ -17,6 +17,12 @@ node bin/speckit-jira-git.js <command> [args...]
 
 The skill installer chooses the agent-specific installation path. Never assume `.agents`, `.claude`, or another fixed directory.
 
+If neither invocation can be resolved, stop before any Jira or GitHub write and
+tell the user that the required `speckit-jira-git` skill or CLI could not be
+loaded, which locations were checked, and that the project structure or skill
+installation must be repaired. Do not substitute direct Jira REST calls,
+generic Jira tools, `gh` mutations, or manually constructed payloads.
+
 ## Safety
 
 - Run `setup-check` before live Jira or GitHub writes.
